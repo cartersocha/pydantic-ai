@@ -103,6 +103,7 @@ pydantic-graph = { workspace = true }
 pydantic-ai-examples = { workspace = true }
 pydantic-ai-harness = { workspace = true }
 pydantic-clai2 = { workspace = true }
+train-telemetry = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -113,6 +114,7 @@ members = [
     "examples",
     "src/pydantic_ai_harness",
     "src/pydantic_clai2",
+    "src/train_telemetry",
 ]
 
 [tool.uv]
@@ -457,6 +459,7 @@ anyio_mode = "auto"
 testpaths = ["tests", ".github/scripts/test_ci_duration.py"]
 xfail_strict = true
 markers = [
+    "train_acceptance: training telemetry acceptance workloads",
     "modal_live: runs against a real Modal control plane; needs credentials",
     "e2b_live: runs against a real E2B sandbox; needs credentials",
     "sprites_live: runs against a real Sprites control plane; needs credentials",

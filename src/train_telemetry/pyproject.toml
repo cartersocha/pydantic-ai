@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "train-telemetry"
+version = "0.1.0"
+description = "Local system metrics, metadata and logs for training runs"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["logfire[system-metrics]>=4.40.0,<5", "psutil>=5.9"]
+
+[project.optional-dependencies]
+nvidia = ["nvidia-ml-py>=12"]
+example = ["torch>=2.13", "torchvision>=0.28"]
+
+[project.scripts]
+train-telemetry = "train_telemetry.__main__:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["train_telemetry"]
