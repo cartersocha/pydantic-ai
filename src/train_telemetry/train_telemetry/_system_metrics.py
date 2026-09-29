@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 import logfire
 import psutil
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
-from opentelemetry.metrics import CallbackOptions, Observation
+from opentelemetry.metrics import CallbackOptions, CallbackT, Observation
 
 from ._cache import SnapshotCache
 
@@ -59,19 +59,41 @@ def install(instance: logfire.Logfire, directory: Path, tree: ProcessTree) -> Ca
     instrumentor = SystemMetricsInstrumentor()
     if instrumentor.is_instrumented_by_opentelemetry:
         raise RuntimeError('System metrics are already instrumented; start `TrainingRun` before instrumenting Logfire')
-    instance.instrument_system_metrics(
-        {
-            'process.cpu.utilization': None,
-            'process.memory.usage': None,
-            'process.thread.count': None,
-            'system.cpu.simple_utilization': None,
-            'system.memory.usage': ['used', 'available', 'total'],
-            'system.memory.utilization': ['available'],
-            'system.disk.io': ['read', 'write'],
-            'system.network.io': ['transmit', 'receive'],
-        },
-        base=None,
-    )
+    original_register = instance.metric_gauge_callback
+
+    def cached_callback(
+        callback: Callable[[CallbackOptions], Iterable[Observation]],
+    ) -> Callable[[CallbackOptions], Iterable[Observation]]:
+        cache = SnapshotCache(lambda: list(callback(CallbackOptions())), list[Observation]())
+        return lambda _: cache.get()
+
+    def register(name: str, callbacks: Sequence[CallbackT], *, unit: str = '', description: str = '') -> None:
+        original_register(
+            name,
+            [cached_callback(callback) if callable(callback) else callback for callback in callbacks],
+            unit=unit,
+            description=description,
+        )
+
+    # Logfire's CPU gauges use cpu_percent() deltas; two readers must not reset
+    # those deltas twice in one tick. Only wrap registration on our own instance.
+    instance.metric_gauge_callback = register
+    try:
+        instance.instrument_system_metrics(
+            {
+                'process.cpu.utilization': None,
+                'process.memory.usage': None,
+                'process.thread.count': None,
+                'system.cpu.simple_utilization': None,
+                'system.memory.usage': ['used', 'available', 'total'],
+                'system.memory.utilization': ['available'],
+                'system.disk.io': ['read', 'write'],
+                'system.network.io': ['transmit', 'receive'],
+            },
+            base=None,
+        )
+    finally:
+        instance.metric_gauge_callback = original_register
     for name, unit in (
         ('train.process.tree.memory.rss', 'By'),
         ('train.process.tree.cpu.utilization', '1'),

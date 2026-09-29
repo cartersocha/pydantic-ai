@@ -10,10 +10,10 @@ import logfire
 import pytest
 from inline_snapshot import snapshot
 from logfire.testing import CaptureLogfire
-from train_telemetry._gpu import GpuCollector
-from train_telemetry._system_metrics import ProcessTree
 
 from train_telemetry import TrainingRun, _cache
+from train_telemetry._gpu import GpuCollector
+from train_telemetry._system_metrics import ProcessTree
 
 
 @dataclass
@@ -218,3 +218,9 @@ def test_torch_allocators(monkeypatch: pytest.MonkeyPatch) -> None:
             'train.torch.memory.peak_allocated': [30],
         }
     )
+
+
+def test_torch_import_in_progress(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, 'torch', SimpleNamespace(__spec__=SimpleNamespace(_initializing=True)))
+    collector = GpuCollector(ProcessTree())
+    assert collector.snapshot() == {}

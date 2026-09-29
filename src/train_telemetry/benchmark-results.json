@@ -1,0 +1,23 @@
+{
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "python": "3.11.0",
+  "device": "auto",
+  "batches": 300,
+  "repetitions": 3,
+  "epoch_seconds": {
+    "bare": [
+      5.8,
+      5.8,
+      6.0
+    ],
+    "instrumented": [
+      7.1,
+      7.1,
+      7.1
+    ]
+  },
+  "median_bare_s": 5.8,
+  "median_instrumented_s": 7.1,
+  "overhead_percent": 22.413793103448263,
+  "timing_resolution_s": 0.1
+}

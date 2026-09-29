@@ -19,3 +19,14 @@ train-telemetry = "train_telemetry.__main__:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["train_telemetry"]
+
+[tool.coverage.run]
+source = ["train_telemetry"]
+branch = true
+data_file = ".coverage/train-telemetry"
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = true
+exclude_also = ['\(Protocol\b.*\):$', 'if __name__ == .__main__.:', 'if TYPE_CHECKING:']

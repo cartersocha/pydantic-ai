@@ -137,10 +137,7 @@ class TrainingRun:
             self._span = self._logfire.span('training run {run_name}', run_name=self.config.run_name)
             self._span.set_attribute('train.run.id', self.id)
             self._span.__enter__()
-            if threading.current_thread() is threading.main_thread():
-                for sig in (signal.SIGTERM, signal.SIGINT):
-                    previous = signal.signal(sig, _signal_handler)
-                    self._stack.callback(signal.signal, sig, previous)
+            self._install_signals()
             guard = CaptureGuard()
             install_logging(self._logfire, self._stack, guard, self.config.log_level)
             if self.config.console == 'tee':
@@ -190,7 +187,6 @@ class TrainingRun:
             self._stack.callback(gpu.close)
             if self.config.gpu:
                 gpu.initialize()
-                gpu.install(self._logfire)
             metadata, package_count = collect(
                 self.config,
                 self.id,
@@ -201,6 +197,8 @@ class TrainingRun:
                 args=self.args,
                 gpus=gpu.inventory,
             )
+            if self.config.gpu:
+                gpu.install(self._logfire)
             metadata.pop('packages')
             self._logfire.info(
                 'run metadata',
@@ -209,20 +207,27 @@ class TrainingRun:
                 gpu_status=gpu.status,
             )
             return self
-        except BaseException:
+        except BaseException as exc:
             if self._span is not None:
                 self.__exit__(*sys.exc_info())
             else:
+                self._finish(exc)
                 try:
                     if self._logfire is not None:
                         self._logfire.shutdown()
+                    if self._started_at is not None:
+                        self._write_state()
                 finally:
                     self._stack.close()
             raise
 
-    def __exit__(
-        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None
-    ) -> Literal[False]:
+    def _install_signals(self) -> None:
+        if threading.current_thread() is threading.main_thread():
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                previous = signal.signal(sig, _signal_handler)
+                self._stack.callback(signal.signal, sig, previous)
+
+    def _finish(self, exc: BaseException | None) -> None:
         if isinstance(exc, _Terminated):
             self.status, self.exit_code = 'terminated', 143
         elif isinstance(exc, KeyboardInterrupt):
@@ -236,6 +241,13 @@ class TrainingRun:
             self.status, self.exit_code = 'ok', 0
         self._ended_at = _utc_now()
         self._duration = time.monotonic() - self._started
+
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None
+    ) -> Literal[False]:
+        self._finish(exc)
+        instance, span = self._logfire, self._span
+        assert instance is not None and span is not None
         try:
             if (
                 exc is not None
@@ -243,8 +255,7 @@ class TrainingRun:
                 and self._console_file is not None
             ):
                 traceback.print_exception(exc_type, exc, tb, file=self._console_file)
-            assert self._span is not None and self._logfire is not None
-            self._span.set_attributes(
+            span.set_attributes(
                 {
                     'train.run.status': self.status,
                     'train.run.exit_code': self.exit_code,
@@ -252,8 +263,8 @@ class TrainingRun:
                 }
             )
             if self.exit_code:
-                self._span.set_level('error')
-            self._logfire.log(
+                span.set_level('error')
+            instance.log(
                 'error' if self.exit_code else 'info',
                 'run finished {status}',
                 {
@@ -263,12 +274,11 @@ class TrainingRun:
                     'run_dir': str(self.dir) if self.config.files else None,
                 },
             )
-            self._span.__exit__(exc_type, exc, tb)
+            span.__exit__(exc_type, exc, tb)
             self._write_state()
         finally:
             try:
-                if self._logfire is not None:
-                    self._logfire.shutdown()
+                instance.shutdown()
             finally:
                 self._stack.close()
         return False

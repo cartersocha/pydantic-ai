@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 from inline_snapshot import snapshot
-from train_telemetry._metadata import sanitize_remote
 
 from train_telemetry import TrainingRun
+from train_telemetry._metadata import sanitize_remote
 
 
 def test_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

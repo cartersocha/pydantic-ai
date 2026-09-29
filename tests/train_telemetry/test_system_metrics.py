@@ -5,10 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import psutil
 from opentelemetry.metrics import CallbackOptions
-from train_telemetry._system_metrics import ProcessTree
 
 from train_telemetry import TrainingRun
+from train_telemetry._system_metrics import ProcessTree
 
 SYSTEM_METRICS = {
     'process.cpu.utilization',
@@ -42,13 +43,19 @@ def test_metric_names(tmp_path: Path) -> None:
 
 def test_process_tree() -> None:
     # Process-tree collection depends on an actual OS child boundary.
-    child = subprocess.Popen([sys.executable, '-c', 'import sys; sys.stdin.read()'], stdin=subprocess.PIPE)
+    child = subprocess.Popen(
+        [sys.executable, '-c', 'import sys; print("ready", flush=True); sys.stdin.read()'],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
     try:
+        assert child.stdout is not None
+        assert child.stdout.readline() == b'ready\n'
         tree = ProcessTree()
         children = list(tree.callback('train.process.tree.children')(CallbackOptions()))
         rss = list(tree.callback('train.process.tree.memory.rss')(CallbackOptions()))
         assert children[0].value >= 1
         assert child.pid in tree.pids()
-        assert rss[0].value > 0
+        assert rss[0].value > psutil.Process().memory_info().rss
     finally:
         child.communicate(timeout=5)

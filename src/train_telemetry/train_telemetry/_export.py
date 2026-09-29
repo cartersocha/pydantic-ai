@@ -142,15 +142,15 @@ def configure_logfire(config: RunConfig, run_id: str, directory: Path) -> logfir
     processors: list[BatchSpanProcessor] = []
     readers: list[PeriodicExportingMetricReader] = []
     log_processors: list[BatchLogRecordProcessor] = []
-    if config.files:
-        processors.append(BatchSpanProcessor(JsonlSpanExporter(directory / 'spans.jsonl')))
-        readers.append(
-            PeriodicExportingMetricReader(
-                JsonlMetricExporter(directory / 'metrics.jsonl'), export_interval_millis=config.interval_s * 1000
-            )
-        )
-        log_processors.append(BatchLogRecordProcessor(JsonlLogExporter(directory / 'logs.jsonl')))
     try:
+        if config.files:
+            processors.append(BatchSpanProcessor(JsonlSpanExporter(directory / 'spans.jsonl')))
+            readers.append(
+                PeriodicExportingMetricReader(
+                    JsonlMetricExporter(directory / 'metrics.jsonl'), export_interval_millis=config.interval_s * 1000
+                )
+            )
+            log_processors.append(BatchLogRecordProcessor(JsonlLogExporter(directory / 'logs.jsonl')))
         return logfire.configure(
             send_to_logfire=config.send_to_logfire,
             token=os.environ.get('LOGFIRE_TOKEN') if config.send_to_logfire else None,

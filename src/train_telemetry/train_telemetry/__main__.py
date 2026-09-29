@@ -77,8 +77,7 @@ def main(argv: list[str] | None = None) -> int:
         pass
     except Exception:
         traceback.print_exc()
-        if run.status == 'running':
-            raise
+        run.status, run.exit_code = 'failed', 1
     finally:
         sys.argv = old_argv
         sys.path[:] = old_path

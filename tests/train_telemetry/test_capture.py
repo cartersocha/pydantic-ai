@@ -11,9 +11,9 @@ import logfire
 import pytest
 from inline_snapshot import snapshot
 from logfire.testing import CaptureLogfire
-from train_telemetry._console import CaptureGuard, ConsoleTee
 
 from train_telemetry import TrainingRun
+from train_telemetry._console import CaptureGuard, ConsoleTee
 
 from .utils import spans
 

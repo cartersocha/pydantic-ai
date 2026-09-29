@@ -100,7 +100,8 @@ def train_epoch(
         images, targets = images.to(device), targets.to(device)
         optimizer.zero_grad()
         loss = F.nll_loss(model(images), targets)
-        loss.backward()
+        # torch leaves optional backward parameters untyped.
+        loss.backward()  # pyright: ignore[reportUnknownMemberType]
         optimizer.step()
         global_step += 1
 
@@ -150,18 +151,27 @@ def main(argv: list[str] | None = None) -> None:
     """Run the unchanged training workload."""
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
-    torch.manual_seed(args.seed)
+    # torch leaves the seed parameter untyped.
+    torch.manual_seed(args.seed)  # pyright: ignore[reportUnknownMemberType]
 
     device = pick_device(args.device)
     if device.type == 'cpu':
         warnings.warn('No GPU found, training on CPU', RuntimeWarning, stacklevel=1)
     log.info('Training on %s with torch %s', device, torch.__version__)
 
-    loader_kwargs = {'num_workers': args.num_workers, 'pin_memory': device.type == 'cuda'}
     train_loader = DataLoader(
-        load_dataset(args.data, args.data_dir, train=True), batch_size=args.batch_size, shuffle=True, **loader_kwargs
+        load_dataset(args.data, args.data_dir, train=True),
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        pin_memory=device.type == 'cuda',
     )
-    test_loader = DataLoader(load_dataset(args.data, args.data_dir, train=False), batch_size=1000, **loader_kwargs)
+    test_loader = DataLoader(
+        load_dataset(args.data, args.data_dir, train=False),
+        batch_size=1000,
+        num_workers=args.num_workers,
+        pin_memory=device.type == 'cuda',
+    )
 
     model = Net().to(device)
     optimizer = torch.optim.Adadelta(model.parameters(), lr=args.lr)

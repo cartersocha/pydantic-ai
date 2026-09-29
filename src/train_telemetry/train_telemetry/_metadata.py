@@ -131,6 +131,15 @@ def collect(
     }
     torch = get_torch(import_if_available=True)
     if torch is not None:
+        if torch.cuda.is_initialized():
+            capabilities = {}
+            for index in range(torch.cuda.device_count()):
+                device = torch.cuda.get_device_properties(index)
+                capabilities[device.uuid] = [device.major, device.minor]
+            for gpu in gpus or []:
+                gpu_uuid = gpu.get('uuid')
+                if isinstance(gpu_uuid, str) and gpu_uuid in capabilities:
+                    gpu['compute_capability'] = capabilities[gpu_uuid]
         metadata['torch'] = {
             'version': torch.__version__,
             'cuda': torch.version.cuda,

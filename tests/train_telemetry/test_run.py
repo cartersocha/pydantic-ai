@@ -11,9 +11,10 @@ from inline_snapshot import snapshot
 from opentelemetry.metrics import Observation
 from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import ExportMetricsServiceRequest
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
-from train_telemetry.__main__ import main
 
+import train_telemetry._run as run_module
 from train_telemetry import RunConfig, TrainingRun
+from train_telemetry.__main__ import main
 
 from .conftest import Receiver
 
@@ -98,8 +99,6 @@ def test_script_args(tmp_path: Path) -> None:
 
 
 def test_startup_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    import train_telemetry._run as run_module
-
     def fail_metadata(*args: object, **kwargs: object) -> tuple[dict[str, object], int]:
         raise OSError('metadata unavailable')
 

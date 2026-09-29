@@ -7,6 +7,12 @@ import sys
 from typing import Protocol, cast
 
 
+class DeviceProperties(Protocol):
+    uuid: str
+    major: int
+    minor: int
+
+
 class Cuda(Protocol):
     def is_initialized(self) -> bool: ...
     def is_available(self) -> bool: ...
@@ -14,6 +20,7 @@ class Cuda(Protocol):
     def memory_allocated(self, device: int) -> int: ...
     def memory_reserved(self, device: int) -> int: ...
     def max_memory_allocated(self, device: int) -> int: ...
+    def get_device_properties(self, device: int) -> DeviceProperties: ...
     def get_device_capability(self, device: int) -> tuple[int, int]: ...
 
 
@@ -54,6 +61,10 @@ def get_torch(*, import_if_available: bool = False) -> Torch | None:
             module = importlib.import_module('torch')
         except ImportError:
             return None
+    # A reader thread can observe sys.modules during a user import. Do not
+    # wait on the import lock, or inspect torch until its loader has finished.
+    if module is not None and getattr(getattr(module, '__spec__', None), '_initializing', False):
+        return None
     # torch is optional and loaded dynamically; the protocol describes only the
     # stable public interfaces used here, avoiding a runtime torch dependency.
     return cast(Torch, module) if module is not None else None

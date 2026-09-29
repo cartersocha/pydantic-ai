@@ -8,9 +8,9 @@ from google.protobuf.json_format import Parse
 from opentelemetry._logs import SeverityNumber, get_logger
 from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import ExportLogsServiceRequest
 from opentelemetry.sdk.trace.export import SpanExportResult
-from train_telemetry._export import JsonlSpanExporter
 
 from train_telemetry import TrainingRun
+from train_telemetry._export import JsonlSpanExporter
 
 from .conftest import Receiver
 
