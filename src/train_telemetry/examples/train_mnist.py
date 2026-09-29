@@ -58,6 +58,7 @@ class Net(nn.Module):
 
 
 def load_dataset(kind: str, data_dir: Path, train: bool) -> Dataset[tuple[torch.Tensor, int]]:
+    """Load MNIST or deterministic synthetic images."""
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((MNIST_MEAN,), (MNIST_STD,))])
     if kind == 'fake':
         # Random 28x28 images with MNIST's shape and size, for machines that can't download MNIST.
@@ -72,6 +73,7 @@ def load_dataset(kind: str, data_dir: Path, train: bool) -> Dataset[tuple[torch.
 
 
 def pick_device(requested: str) -> torch.device:
+    """Choose CUDA, MPS, or CPU unless explicitly selected."""
     if requested != 'auto':
         return torch.device(requested)
     if torch.cuda.is_available():
@@ -90,6 +92,7 @@ def train_epoch(
     args: argparse.Namespace,
     global_step: int,
 ) -> int:
+    """Train one epoch and return the cumulative step count."""
     model.train()
     for batch_idx, (images, targets) in enumerate(loader):
         if args.limit_batches and batch_idx >= args.limit_batches:
@@ -112,6 +115,7 @@ def train_epoch(
 def evaluate(
     model: nn.Module, loader: DataLoader[tuple[torch.Tensor, int]], device: torch.device, limit_batches: int
 ) -> tuple[float, float]:
+    """Return mean test loss and classification accuracy."""
     model.eval()
     total_loss, correct, seen = 0.0, 0, 0
     for batch_idx, (images, targets) in enumerate(loader):
@@ -126,6 +130,7 @@ def evaluate(
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse workload options independently of the telemetry runner."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--data', choices=['mnist', 'fake'], default='mnist')
     parser.add_argument('--data-dir', type=Path, default=Path('data'))
@@ -142,6 +147,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Run the unchanged training workload."""
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
     torch.manual_seed(args.seed)

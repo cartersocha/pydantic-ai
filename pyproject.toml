@@ -226,6 +226,7 @@ google-genai = "2026-09-22T17:23:02Z"
 
 [dependency-groups]
 dev = [
+    "train-telemetry",
     # `anyio_mode = "auto"` (pytest plugin) was added in 4.11.0.
     "anyio>=4.11.0",
     "trio>=0.34.0",
@@ -312,6 +313,7 @@ include = [
     "clai/**/*.py",
     "src/pydantic_ai_harness/**/*.py",
     "src/pydantic_clai2/**/*.py",
+    "src/train_telemetry/**/*.py",
     "tests/**/*.py",
     "docs/**/*.py",
     "scripts/typecheck_changed.py",
@@ -423,6 +425,7 @@ include = [
     "clai",
     "src/pydantic_ai_harness",
     "src/pydantic_clai2",
+    "src/train_telemetry/train_telemetry",
     "scripts/typecheck_changed.py",
     "scripts/test_typecheck_changed.py",
 ]
@@ -434,6 +437,7 @@ venv = ".venv"
 # see https://github.com/microsoft/pyright/issues/7771 - we don't want to error on decorated functions in tests
 # which are not otherwise used
 executionEnvironments = [
+    { root = "tests/train_telemetry", extraPaths = ["src/train_telemetry", "."], reportUnusedFunction = false, reportPrivateImportUsage = false },
     { root = "tests", extraPaths = ["examples"], reportUnusedFunction = false, reportPrivateImportUsage = false },
     # `scripts/typecheck_changed.py` reads `tomllib`, which is 3.11+. These two are
     # developer tooling rather than shipped code, and the script falls back to the full
